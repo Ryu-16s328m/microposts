@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 
-use App\Http\Controllers\Controller;
-
 class UserFollowController extends Controller
 {
     public function store(Request $request, $id)
@@ -13,7 +11,6 @@ class UserFollowController extends Controller
         \Auth::user()->follow($id);
         return redirect()->back();
     }
-
     public function destroy($id)
     {
         \Auth::user()->unfollow($id);

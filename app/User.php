@@ -1,14 +1,10 @@
 <?php
-
 namespace App;
-
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-
 class User extends Authenticatable
 {
     use Notifiable;
-
     /**
      * The attributes that are mass assignable.
      *
@@ -17,7 +13,6 @@ class User extends Authenticatable
     protected $fillable = [
         'name', 'email', 'password',
     ];
-
     /**
      * The attributes that should be hidden for arrays.
      *
@@ -26,26 +21,35 @@ class User extends Authenticatable
     protected $hidden = [
         'password', 'remember_token',
     ];
+    
     public function microposts()
     {
         return $this->hasMany(Micropost::class);
     }
+    
     public function followings()
     {
         return $this->belongsToMany(User::class, 'user_follow', 'user_id', 'follow_id')->withTimestamps();
     }
-
+    
     public function followers()
     {
         return $this->belongsToMany(User::class, 'user_follow', 'follow_id', 'user_id')->withTimestamps();
     }
+    
+    // お気に入り登録をした投稿
+    public function favorites()
+    {
+        return $this->belongsToMany(Micropost::class, 'user_favorite', 'user_id', 'favorite_id')->withTimestamps();
+    }
+    
     public function follow($userId)
     {
         // 既にフォローしているかの確認
         $exist = $this->is_following($userId);
         // 自分自身ではないかの確認
         $its_me = $this->id == $userId;
-
+    
         if ($exist || $its_me) {
             // 既にフォローしていれば何もしない
             return false;
@@ -55,14 +59,13 @@ class User extends Authenticatable
             return true;
         }
     }
-
     public function unfollow($userId)
     {
         // 既にフォローしているかの確認
         $exist = $this->is_following($userId);
         // 自分自身ではないかの確認
         $its_me = $this->id == $userId;
-
+    
         if ($exist && !$its_me) {
             // 既にフォローしていればフォローを外す
             $this->followings()->detach($userId);
@@ -72,53 +75,55 @@ class User extends Authenticatable
             return false;
         }
     }
-
-    public function is_following($userId)
-    {
-        return $this->followings()->where('follow_id', $userId)->exists();
-    }
-    public function feed_microposts()
-    {
-        $follow_user_ids = $this->followings()-> pluck('users.id')->toArray();
-        $follow_user_ids[] = $this->id;
-        return Micropost::whereIn('user_id', $follow_user_ids);
-    }
-    //ここからfavorite
-    public function favorites()
-    {
-        return $this->belongsToMany(Micropost::class, 'user_favorite', 'user_id', 'favorite_id')->withTimestamps();
-    }
+    
+    // お気に入りに登録する
     public function favorite($micropostId)
     {
-        // 既にfavしているかの確認
-        $exist = $this->is_favorites($micropostId);
         
+        //既にお気に入り登録しているか
+        $exist = $this->is_favorite($micropostId);
         if ($exist) {
-            // 既にfavしていれば何もしない
+            //既に登録済みの場合は何もしない
             return false;
         } else {
-            // 未favであればfavする
+            //未登録であればお気に入り登録
             $this->favorites()->attach($micropostId);
             return true;
         }
+        
     }
-
+    
+    // お気に入り解除
     public function unfavorite($micropostId)
     {
-        // 既にfavしてたら解除,なければ何もしない
-        $exist = $this->is_favorites($micropostId);
         
-        if ($exist) {
+        //既にお気に入り登録しているか
+        $exist = $this->is_favorite($micropostId);
+        if ($exist){
+            //既に登録済の場合は削除
             $this->favorites()->detach($micropostId);
             return true;
         } else {
+            //未登録であれば何もしない
             return false;
         }
     }
-
-    public function is_favorites($micropostId)
+    
+    // お気に入り登録しているか
+    public function is_favorite($micropostId)
     {
         return $this->favorites()->where('favorite_id', $micropostId)->exists();
     }
-
+    
+    
+    public function is_following($userId) {
+        return $this->followings()->where('follow_id', $userId)->exists();
+    }
+    
+    public function feed_microposts()
+    {
+        $follow_user_ids = $this->followings()->pluck('users.id')->toArray();
+        $follow_user_ids[] = $this->id;
+        return Micropost::whereIn('user_id', $follow_user_ids);
+    }
 }
