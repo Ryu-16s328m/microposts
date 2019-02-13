@@ -6,17 +6,17 @@ use Illuminate\Http\Request;
 
 use App\Http\Controllers\Controller;
 
-class UserFollowController extends Controller
+class MicropostsController extends Controller
 {
     public function store(Request $request, $id)
     {
-        \Auth::user()->follow($id);
+        \Auth::micropost()->favorite($id);
         return redirect()->back();
     }
 
     public function destroy($id)
     {
-        \Auth::user()->unfollow($id);
+        \Auth::micropost()->unfavorite($id);
         return redirect()->back();
     }
 }
